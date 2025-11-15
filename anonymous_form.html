@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anonymous Student Complaint Form</title>
+    <link rel="stylesheet" href="anonymous_form.css">
+</head>
+<body>
+    
+    <div class="container">
+        <h2>Anonymous Student Complaint Form</h2>
+        <form id="anonymousForm">
+            <label for="complaint">Your Complaint:</label>
+            <textarea id="complaint" name="complaint" rows="6" placeholder="Type your complaint here..." required></textarea>
+
+            <label for="date">Date:</label>
+            <input type="date" id="date" name="date" required>
+
+            <button type="submit">Submit Complaint</button>
+            <br>
+            <a class="Return" href="index.html" >&larr; Return to Home Page</a>
+            <p class="note">No personal details are collected. Your identity remains anonymous.</p>
+        </form>
+    </div>
+    <script src="script.js"></script> 
+</body>
+</html>

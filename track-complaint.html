@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Your Complaint</title>
+    <link rel="stylesheet" href="track-complaint.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Track Your Complaint</h2>
+        <form action="track_complaint.php" method="POST">
+        <label for="complaintid">Complaint ID</label>
+        <input type="text" id="complaintid" name="complaintid" placeholder="Enter your complaint ID" required>
+
+        <button type="submit">Track Complaint</button>
+        <br>
+        <a class="Return" href="index.html" >&larr; Return to Home Page</a>
+        <p class="note">Enter the Complaint ID you received after submission to check the status.</p>
+        </form>
+    </div> 
+    <script src="script.js"></script> 
+</body>
+</html>
