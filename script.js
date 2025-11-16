@@ -1,113 +1,146 @@
-// script.js — single frontend driver for all forms
-console.log("SCRIPT LOADED");
+/**
+ * script.js
+ * Contains client-side functionality for all pages:
+ * 1. Form submission handling (simulated success/error)
+ * 2. Basic client-side validation
+ */
 
-const API_BASE_URL = "http://127.0.0.1:5000/api"; // make sure backend is running here
+document.addEventListener('DOMContentLoaded', () => {
+    // Select the form element on the current page
+    const form = document.querySelector('form');
 
-document.addEventListener("DOMContentLoaded", () => {
-  const forms = document.querySelectorAll("form");
-  forms.forEach(f => f.addEventListener("submit", handleFormSubmission));
+    if (form) {
+        form.addEventListener('submit', handleFormSubmission);
+    }
 });
 
-async function handleFormSubmission(e) {
-  e.preventDefault();
-  const form = e.target;
+/**
+ * Handles the submission for all forms on the site.
+ * It prevents the default submission, validates, and simulates a server response.
+ * @param {Event} event - The form submission event.
+ */
+function handleFormSubmission(event) {
+    event.preventDefault();
 
-  // identify track form if it contains an input with id complaintid
-  const isTrackForm = !!form.querySelector("#complaintid");
+    const form = event.target;
+    // Get the action URL to determine what kind of form it is (submit or track)
+    const actionUrl = form.getAttribute('action');
+    
+    // --- Basic Client-Side Validation ---
+    // Check if all required fields have values
+    const requiredInputs = form.querySelectorAll('[required]');
+    let isValid = true;
 
-  // gather required inputs and validate
-  const requiredInputs = form.querySelectorAll("[required]");
-  let valid = true;
-  requiredInputs.forEach(i => {
-    if (!i.value.trim()) {
-      i.style.border = "2px solid red";
-      valid = false;
-    } else {
-      i.style.border = "2px solid #e5e7eb";
-    }
-  });
-  if (!valid) {
-    alert("Please fill all required fields.");
-    return;
-  }
-
-  // UI - disable button
-  const btn = form.querySelector("button[type='submit']");
-  if (btn) { btn.disabled = true; btn.dataset.origText = btn.innerText; btn.innerText = "Processing..."; }
-
-  try {
-    if (isTrackForm) {
-      // tracking form
-      const id = form.querySelector("#complaintid").value.trim();
-      const resp = await fetch(`${API_BASE_URL}/complaints/${encodeURIComponent(id)}`);
-      if (!resp.ok) {
-        alert("Complaint not found.");
-      } else {
-        const data = await resp.json();
-        // show status in a friendly alert or write to .note element if present
-        const note = form.querySelector(".note") || document.querySelector(".note");
-        const statusText = `Status: ${data.status || 'N/A'}\nMessage: ${data.text || '(no message)'}`;
-        if (note) {
-          note.innerHTML = `<p style="color:#2563eb;font-weight:600">${statusText.replace(/\n/g, "<br>")}</p>`;
+    requiredInputs.forEach(input => {
+        if (!input.value.trim()) {
+            // Simple visual feedback for empty fields
+            input.style.border = '2px solid red';
+            isValid = false;
         } else {
-          alert(statusText);
+            input.style.border = '2px solid #e5e7eb'; // Reset to default border
         }
-      }
-    } else {
-      // submission form — build payload from fields
-      const payload = {};
-      const fdata = new FormData(form);
-      fdata.forEach((v,k) => payload[k] = v);
+    });
 
-      // legacy mapping: if front-end uses "complaint" field, map to text
-      if (payload['complaint'] && !payload['text']) {
-        payload['text'] = payload['complaint'];
-        delete payload['complaint'];
-      }
+    if (!isValid) {
+        alert('Please fill in all required fields before submitting.');
+        return;
+    }
+    // --- End Validation ---
 
-      // send to API
-      const resp = await fetch(`${API_BASE_URL}/complaints`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const body = await resp.json().catch(()=>null);
-      if (!resp.ok) {
-        alert("Error: " + (body && body.error ? body.error : resp.status));
-      } else {
-        // show success UI — replace the form container with success message
-        showSuccessUI(form, body.tracking_id || "(no-id)");
-      }
+    // Disable the button to prevent multiple submissions
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) {
+        submitButton.textContent = 'Processing...';
+        submitButton.disabled = true;
     }
 
-  } catch (err) {
-    console.error("Network or server error:", err);
-    alert("Could not reach the server. Is the backend running (http://127.0.0.1:5000)?");
-  } finally {
-    if (btn) {
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.innerText = btn.dataset.origText || "Submit";
-      }, 800);
-    }
-  }
+    // --- Simulate Server Response ---
+    // In a real application, you would use 'fetch' here to send data to the server.
+    // Example: fetch(actionUrl, { method: 'POST', body: new FormData(form) }).then(...)
+    
+    console.log('Form data being sent:', Object.fromEntries(new FormData(form).entries()));
+
+    // Simulate a network delay
+    setTimeout(() => {
+        if (actionUrl.includes('submit_complaint.php')) {
+            // Logic for Anonymous or User ID Complaint Forms
+            const complaintID = generateComplaintID();
+            displaySubmissionSuccess(form, complaintID);
+            
+        } else if (actionUrl.includes('track_complaint.php')) {
+            // Logic for Track Complaint Form
+            const complaintIdInput = form.querySelector('#complaintid');
+            displayTrackingResult(complaintIdInput.value);
+        }
+
+        // Re-enable the button after simulation
+        if (submitButton) {
+            submitButton.textContent = 'Submitted!'; // Temporary text change
+            setTimeout(() => {
+                 submitButton.textContent = (actionUrl.includes('submit_complaint.php')) ? 'Submit Complaint' : 'Track Complaint';
+                 submitButton.disabled = false;
+            }, 3000); // Revert button text after 3 seconds
+        }
+
+    }, 1500); // 1.5 second delay
 }
 
-function showSuccessUI(form, trackingId) {
-  const container = form.closest(".container") || form.parentElement;
-  if (!container) {
-    alert("Complaint submitted. ID: " + trackingId);
-    return;
-  }
-  container.innerHTML = `
-    <h2>✅ Submission Successful!</h2>
-    <p class="note" style="color:#10b981;font-size:1.05em">Thank you — your complaint was received.</p>
-    <div style="background:#e0f2f1;padding:18px;border-radius:10px;margin-top:14px;text-align:center;">
-      <p style="font-weight:600;color:#0f766e;margin:0">Your Tracking ID:</p>
-      <p style="font-size:1.6em;font-weight:700;color:#047857;margin:6px 0">${trackingId}</p>
-      <p style="font-size:0.9em;color:#0d9488">Save this ID to track your complaint.</p>
-    </div>
-    <a class="Return" href="index.html" style="display:inline-block;margin-top:16px">&larr; Return to Home Page</a>
-  `;
+/**
+ * Generates a simple, simulated complaint ID.
+ * @returns {string} The generated ID.
+ */
+function generateComplaintID() {
+    return 'C-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+}
+
+/**
+ * Updates the form UI to show a successful submission message.
+ * @param {HTMLElement} formElement - The form that was submitted.
+ * @param {string} complaintId - The simulated complaint ID.
+ */
+function displaySubmissionSuccess(formElement, complaintId) {
+    const container = formElement.closest('.container');
+    if (!container) return;
+
+    // Clear existing content and display a success message
+    container.innerHTML = `
+        <h2>✅ Submission Successful!</h2>
+        <p class="note" style="color: #10b981; font-size: 1.1em;">
+            Thank you for submitting your complaint.
+        </p>
+        <div style="background: #e0f2f1; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: center;">
+            <p style="font-size: 1.2em; font-weight: 600; color: #0f766e; margin-bottom: 5px;">Your Complaint ID is:</p>
+            <p style="font-size: 2.2em; font-weight: 700; color: #047857; margin: 0;">${complaintId}</p>
+            <p style="font-size: 0.9em; color: #0d9488; margin-top: 5px;">Please save this ID to track the status of your complaint.</p>
+        </div>
+        <a class="Return" href="index.html" style="margin-top: 30px;">&larr; Return to Home Page</a>
+    `;
+}
+
+/**
+ * Simulates checking the complaint status and displays the result.
+ * @param {string} complaintId - The ID entered by the user.
+ */
+function displayTrackingResult(complaintId) {
+    const formElement = document.querySelector('form');
+    const noteElement = document.querySelector('.note');
+    
+    // Simulate lookup based on the ID (simple demo logic)
+    const status = (complaintId.toUpperCase().includes('C-')) 
+        ? 'In Progress (Review Assigned)' 
+        : 'Invalid ID / Not Found';
+    const color = (status.includes('In Progress')) ? '#2563eb' : '#ef4444';
+    
+    // Update the note element to show the status
+    if (noteElement) {
+        noteElement.innerHTML = `
+            <p style="font-size: 1em; color: ${color}; font-weight: 600;">Status for ID ${complaintId}: ${status}</p>
+        `;
+    }
+    
+    // Clear the input field for a new check
+    const inputField = formElement.querySelector('#complaintid');
+    if(inputField) {
+        inputField.value = '';
+    }
 }
